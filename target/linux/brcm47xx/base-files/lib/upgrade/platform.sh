@@ -53,6 +53,16 @@ platform_expected_image() {
 		"Linksys WRT310N V2")	echo "cybertan 310N"; return;;
 		"Linksys WRT610N V1")	echo "cybertan 610N"; return;;
 		"Linksys WRT610N V2")	echo "cybertan 610N"; return;;
+		"Luxul XAP-310 V1")	echo "lxl XAP-310"; return;;
+		"Luxul XAP-1210 V1")	echo "lxl XAP-1210"; return;;
+		"Luxul XAP-1230 V1")	echo "lxl XAP-1230"; return;;
+		"Luxul XAP-1240 V1")	echo "lxl XAP-1240"; return;;
+		"Luxul XAP-1500 V1")	echo "lxl XAP-1500"; return;;
+		"Luxul ABR-4400 V1")	echo "lxl ABR-4400"; return;;
+		"Luxul XBR-4400 V1")	echo "lxl XBR-4400"; return;;
+		"Luxul XVW-P30 V1")	echo "lxl XVW-P30"; return;;
+		"Luxul XWR-600 V1")	echo "lxl XWR-600"; return;;
+		"Luxul XWR-1750 V1")	echo "lxl XWR-1750"; return;;
 	esac
 }
 
@@ -74,6 +84,12 @@ brcm47xx_identify() {
 	magic=$(get_magic_long_at "$1" 14)
 	[ "$magic" = "55324e44" ] && {
 		echo "cybertan"
+		return
+	}
+
+	magic=$(get_magic_long_at "$1" 60)
+	[ "$magic" = "4c584c23" ] && {
+		echo "lxl"
 		return
 	}
 
@@ -120,6 +136,21 @@ platform_check_image() {
 				error=1
 			fi
 		;;
+		"lxl")
+			local board_id=$(dd if="$1" skip=48 bs=1 count=12 2>/dev/null | hexdump -v -e '1/1 "%c"')
+			local dev_board_id=$(platform_expected_image)
+			echo "Found LXL image with device board_id $board_id"
+
+			[ -n "$dev_board_id" -a "lxl $board_id" != "$dev_board_id" ] && {
+				echo "Firmware board_id doesn't match device board_id ($dev_board_id)"
+				error=1
+			}
+
+			if ! otrx check "$1" -o 64; then
+				echo "No valid TRX firmware in the CyberTAN image"
+				error=1
+			fi
+		;;
 		"trx")
 			if ! otrx check "$1"; then
 				echo "Invalid (corrupted?) TRX firmware"
@@ -145,6 +176,10 @@ platform_trx_from_cybertan_cmd() {
 	echo -n dd bs=32 skip=1
 }
 
+platform_trx_from_lxl_cmd() {
+	echo -n dd bs=64 skip=1
+}
+
 platform_do_upgrade() {
 	local file_type=$(brcm47xx_identify "$1")
 	local trx="$1"
@@ -153,6 +188,7 @@ platform_do_upgrade() {
 	case "$file_type" in
 		"chk")		cmd=$(platform_trx_from_chk_cmd "$trx");;
 		"cybertan")	cmd=$(platform_trx_from_cybertan_cmd "$trx");;
+		"lxl")		cmd=$(platform_trx_from_lxl_cmd "$trx");;
 	esac
 
 	default_do_upgrade "$trx" "$cmd"
