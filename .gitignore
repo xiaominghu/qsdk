@@ -9,10 +9,9 @@
 /staging_dir
 /tmp
 /logs
-/feeds
+/feeds/*.tmp
 /feeds.conf
 /files
-/package/feeds
 /package/openwrt-packages
 key-build*
 *.orig
